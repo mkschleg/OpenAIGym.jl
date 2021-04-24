@@ -172,8 +172,8 @@ function MinimalRLCore.environment_step!(env::GymEnv, a, args...)
 
     convert_state!(env)
 
-    env.total_reward += r
-    return (r, env.state)
+    env.total_reward += env.reward
+    return (env.reward, env.state)
 end
 
 convert_state!(env::GymEnv{T}) where T =
