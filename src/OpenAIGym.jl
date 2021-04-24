@@ -3,15 +3,28 @@ module OpenAIGym
 using PyCall
 import PyCall: hasproperty
 using Reexport
-@reexport using Reinforce
-import Reinforce:
-    MouseAction, MouseActionSet,
-    KeyboardAction, KeyboardActionSet
+@reexport using MinimalRLCore
+import MinimalRLCore: AbstractEnvironment
+# @reexport using Reinforce
+# import Reinforce:
+#     MouseAction, MouseActionSet,
+#     KeyboardAction, KeyboardActionSet
 
 export
     GymEnv,
     render,
     close
+
+
+struct DiscreteSet{T<:AbstractArray} <: AbstractSet{T}
+    items::T
+end
+randtype(s::DiscreteSet) = eltype(s.items)
+Base.rand(s::DiscreteSet, dims::Integer...) = rand(s.items, dims...)
+Base.in(x, s::DiscreteSet) = x in s.items
+Base.length(s::DiscreteSet) = length(s.items)
+Base.getindex(s::DiscreteSet, i::Int) = s.items[i]
+Base.:(==)(s1::DiscreteSet, s2::DiscreteSet) = s1.items == s2.items
 
 # --------------------------------------------------------------
 
@@ -35,7 +48,7 @@ mutable struct GymEnv{T} <: AbstractGymEnv
     function GymEnv{T}(name, ver, pyenv, pystate, state) where T
         env = new{T}(name, ver, pyenv, pyenv."step", pyenv."reset",
                                  pystate, PyNULL(), PyNULL(), state)
-        reset!(env)
+        MinimalRLCore.reset!(env)
         env
     end
 end
@@ -122,7 +135,7 @@ function actionset(A::PyObject)
     end
 end
 
-function Reinforce.actions(env::AbstractGymEnv, s′)
+function MinimalRLCore.get_actions(env::AbstractGymEnv, s′)
     actionset(env.pyenv.action_space)
 end
 
@@ -132,12 +145,12 @@ pyaction(a) = a
 """
 `reset!(env::GymEnv)` reset the environment
 """
-function Reinforce.reset!(env::GymEnv)
+function MinimalRLCore.reset!(env::GymEnv, args...)
     pycall!(env.pystate, env.pyreset, PyObject)
     convert_state!(env)
     env.reward = 0.0
     env.total_reward = 0.0
-    env.actions = actions(env, nothing)
+    env.actions = MinimalRLCore.get_actions(env, nothing)
     env.done = false
     return env.state
 end
@@ -147,11 +160,11 @@ end
 
 take a step in the enviroment
 """
-function Reinforce.step!(env::GymEnv, a)
+function MinimalRLCore.step!(env::GymEnv, a, args...)
     pyact = pyaction(a)
     pycall!(env.pystepres, env.pystep, PyObject, pyact)
 
-    env.pystate, r, env.done, env.info =
+    env.pystate, env.reward, env.done, env.info =
         convert(Tuple{PyObject, Float64, Bool, PyObject}, env.pystepres)
 
     convert_state!(env)
@@ -160,16 +173,17 @@ function Reinforce.step!(env::GymEnv, a)
     return (r, env.state)
 end
 
-@inline Reinforce.step!(env::GymEnv, s, a) = step!(env, a)
-
 convert_state!(env::GymEnv{T}) where T =
     env.state = convert(T, env.pystate)
 
 convert_state!(env::GymEnv{<:PyArray}) =
     env.state = PyArray(env.pystate)
 
-Reinforce.finished(env::GymEnv)     = env.done
-Reinforce.finished(env::GymEnv, s′) = env.done
+# Reinforce.finished(env::GymEnv)     = env.done
+# Reinforce.finished(env::GymEnv, s′) = env.done
+MinimalRLCore.is_terminal(env::GymEnv) = env.done
+MinimalRLCore.get_reward(env::GymEnv) = env.reward
+MinimalRLCore.get_state(env::GymEnv) = env.state
 
 # --------------------------------------------------------------
 

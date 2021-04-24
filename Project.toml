@@ -4,14 +4,9 @@ authors = ["Tom Breloff <tom@breloff.com>", "Joel Mason <jobba1@hotmail.com>", "
 version = "0.1.0"
 
 [deps]
+MinimalRLCore = "4557a151-568a-41c4-844f-9d8069264cea"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
-Reinforce = "0376cc21-f8a9-5fcf-8891-fde1415a4fd3"
-
-[compat]
-Reinforce = "~0.2"
-julia = "≥0.7"
-PyCall = "≥1.90.0"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
