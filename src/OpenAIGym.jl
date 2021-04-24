@@ -25,6 +25,7 @@ Base.in(x, s::DiscreteSet) = x in s.items
 Base.length(s::DiscreteSet) = length(s.items)
 Base.getindex(s::DiscreteSet, i::Int) = s.items[i]
 Base.:(==)(s1::DiscreteSet, s2::DiscreteSet) = s1.items == s2.items
+Base.isempty(s::DiscreteSet) = Base.isempty(s.items)
 
 # --------------------------------------------------------------
 
@@ -162,7 +163,7 @@ end
 
 take a step in the enviroment
 """
-function MinimalRLCore.step!(env::GymEnv, a, args...)
+function MinimalRLCore.environment_step!(env::GymEnv, a, args...)
     pyact = pyaction(a)
     pycall!(env.pystepres, env.pystep, PyObject, pyact)
 
