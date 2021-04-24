@@ -45,9 +45,10 @@ mutable struct GymEnv{T} <: AbstractGymEnv
     total_reward::Float64
     actions::AbstractSet
     done::Bool
-    function GymEnv{T}(name, ver, pyenv, pystate, state) where T
+    function GymEnv{T}(name, ver, pyenv, pystate, state, seed) where T
         env = new{T}(name, ver, pyenv, pyenv."step", pyenv."reset",
-                                 pystate, PyNULL(), PyNULL(), state)
+                     pystate, PyNULL(), PyNULL(), state)
+        env.pyenv.seed(seed)
         MinimalRLCore.reset!(env)
         env
     end
@@ -56,22 +57,23 @@ end
 use_pyarray_state(envname::Symbol) = !(envname ∈ (:Blackjack,))
 
 function GymEnv(name::Symbol, ver::Symbol = :v0;
-                stateT = ifelse(use_pyarray_state(name), PyArray, PyAny))
+                stateT = ifelse(use_pyarray_state(name), PyArray, PyAny),
+                seed=0)
     if PyCall.ispynull(pysoccer) && name ∈ (:Soccer, :SoccerEmptyGoal)
         copy!(pysoccer, pyimport("gym_soccer"))
     end
 
-    GymEnv(name, ver, pygym.make("$name-$ver"), stateT)
+    GymEnv(name, ver, pygym.make("$name-$ver"), stateT, seed)
 end
 
 GymEnv(name::AbstractString; kwargs...) =
     GymEnv(Symbol.(split(name, '-', limit = 2))...; kwargs...)
 
-function GymEnv(name::Symbol, ver::Symbol, pyenv, stateT)
+function GymEnv(name::Symbol, ver::Symbol, pyenv, stateT, seed)
     pystate = pycall(pyenv."reset", PyObject)
     state = convert(stateT, pystate)
     T = typeof(state)
-    GymEnv{T}(name, ver, pyenv, pystate, state)
+    GymEnv{T}(name, ver, pyenv, pystate, state, seed)
 end
 
 function Base.show(io::IO, env::GymEnv)
